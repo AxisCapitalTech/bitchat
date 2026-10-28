@@ -2,7 +2,6 @@ import BitFoundation
 import Combine
 import Foundation
 import SwiftUI
-import Tor
 import UserNotifications
 #if os(iOS)
 import UIKit
@@ -32,11 +31,6 @@ final class AppRuntime: ObservableObject {
     private let idBridge: NostrIdentityBridge
     private var cancellables = Set<AnyCancellable>()
     private var started = false
-    private var lastNostrRelayConnectedState = false
-    private var didHandleInitialNostrConnection = false
-
-    #if os(iOS)
-    #endif
 
     init(
         keychain: KeychainManagerProtocol = KeychainManager.makeDefault(),
@@ -294,46 +288,6 @@ private extension AppRuntime {
             privateDisplayName: privateConversationModel.selectedHeaderState?.displayName,
             activeChannel: locationChannelsModel.selectedChannel
         )
-    }
-
-    func handleNostrRelayConnectionChanged(_ isConnected: Bool) {
-        record(.nostrRelayConnectionChanged(isConnected))
-
-        let becameConnected = isConnected && !lastNostrRelayConnectedState
-        lastNostrRelayConnectedState = isConnected
-
-        guard chatViewModel.networkActivationAllowed,
-              started,
-              becameConnected else { return }
-
-        let isInitialConnection = !didHandleInitialNostrConnection
-        didHandleInitialNostrConnection = true
-
-        if !chatViewModel.nostrHandlersSetup {
-            chatViewModel.setupNostrMessageHandling()
-            chatViewModel.nostrHandlersSetup = true
-        }
-
-        guard !isInitialConnection else { return }
-
-        chatViewModel.resubscribeCurrentGeohash()
-        chatViewModel.geoChannelCoordinator?.refreshSampling()
-    }
-
-    func announceInitialTorStatusIfNeeded() {
-        if TorManager.shared.torEnforced &&
-            !chatViewModel.torStatusAnnounced &&
-            TorManager.shared.isAutoStartAllowed() {
-            chatViewModel.torStatusAnnounced = true
-            chatViewModel.addGeohashOnlySystemMessage(
-                String(localized: "system.tor.starting", comment: "System message when Tor is starting")
-            )
-        } else if !TorManager.shared.torEnforced && !chatViewModel.torStatusAnnounced {
-            chatViewModel.torStatusAnnounced = true
-            chatViewModel.addGeohashOnlySystemMessage(
-                String(localized: "system.tor.dev_bypass", comment: "System message when Tor bypass is enabled in development")
-            )
-        }
     }
 
     func handleScreenshotCaptured() {
