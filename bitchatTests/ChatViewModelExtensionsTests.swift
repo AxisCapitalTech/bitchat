@@ -269,7 +269,9 @@ struct ChatViewModelNostrExtensionTests {
         #expect(viewModel.currentGeohash == nil)
     }
     
-    @Test @MainActor
+    // Preserved for historical upstream comparison; geohash/Nostr is not a
+    // supported MeshPriv transport. Re-enable only if this feature is restored.
+    @Test(.disabled("MeshPriv offline-only: Nostr/geohash transport removed")) @MainActor
     func subscribeNostrEvent_addsToTimeline_ifMatchesGeohash() async throws {
         let geohash = "u4pruydq"
         let channel = ChannelID.location(GeohashChannel(level: .city, geohash: geohash))

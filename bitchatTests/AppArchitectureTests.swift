@@ -670,36 +670,25 @@ struct AppArchitectureTests {
             privateConversationModel: privateConversationModel,
             conversations: viewModel.conversations
         )
-        let geohashChannel = ChannelID.location(GeohashChannel(level: .city, geohash: "9q8yy"))
-        defer {
-            locationManager.select(.mesh)
-        }
+        // MeshPriv intentionally has no geohash channels or Nostr transport.
+        // Retain the composer, UI state and BLE send assertions on #mesh.
         viewModel.nickname = "builder"
         viewModel.autocompleteSuggestions = ["alice"]
         viewModel.showAutocomplete = true
-        locationChannelsModel.select(geohashChannel)
+        locationChannelsModel.select(.mesh)
 
         await waitUntil {
-            viewModel.activeChannel == geohashChannel &&
+            viewModel.activeChannel == .mesh &&
             uiModel.currentNickname == "builder" &&
             uiModel.showAutocomplete &&
             uiModel.autocompleteSuggestions == ["alice"] &&
-            !uiModel.canSendMediaInCurrentContext
-        }
-
-        #expect(viewModel.activeChannel == geohashChannel)
-        #expect(uiModel.currentNickname == "builder")
-        #expect(uiModel.showAutocomplete)
-        #expect(uiModel.autocompleteSuggestions == ["alice"])
-        #expect(!uiModel.canSendMediaInCurrentContext)
-
-        locationChannelsModel.select(ChannelID.mesh)
-        await waitUntil {
-            viewModel.activeChannel == ChannelID.mesh &&
             uiModel.canSendMediaInCurrentContext
         }
 
-        #expect(viewModel.activeChannel == ChannelID.mesh)
+        #expect(viewModel.activeChannel == .mesh)
+        #expect(uiModel.currentNickname == "builder")
+        #expect(uiModel.showAutocomplete)
+        #expect(uiModel.autocompleteSuggestions == ["alice"])
         #expect(uiModel.canSendMediaInCurrentContext)
 
         uiModel.sendMessage("hello mesh")
