@@ -1,0 +1,16 @@
+name: MeshPriv — Offline Startup Guard
+
+on:
+  pull_request:
+  push:
+    branches:
+      - phase2/02-remove-online-startup-dependencies
+
+jobs:
+  offline-startup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check online startup regressions
+        run: python3 scripts/check-meshpriv-offline-bootstrap.py

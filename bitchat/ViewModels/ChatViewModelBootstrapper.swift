@@ -40,11 +40,9 @@ struct ChatViewModelServiceBundle {
         self.privateChatManager = privateChatManager
         self.unifiedPeerService = unifiedPeerService
         self.autocompleteService = AutocompleteService()
-        // Persist processed gift-wrap event IDs: NIP-59 randomizes their
-        // timestamps, so the 24h-lookback DM subscriptions redeliver the same
-        // events on every launch and only a cross-launch record stops the
-        // reprocessing (re-sent DELIVERED bursts, phantom-ack noise).
-        self.deduplicationService = MessageDeduplicationService(nostrEventStore: NostrProcessedEventStore())
+        // Mesh-only deduplication: retain the upstream in-memory BLE packet
+        // guard without creating the Nostr gift-wrap event store.
+        self.deduplicationService = MessageDeduplicationService()
         self.publicMessagePipeline = PublicMessagePipeline()
     }
 }

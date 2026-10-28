@@ -129,11 +129,10 @@ final class AppRuntime: ObservableObject {
         Task(priority: .utility) { [weak self] in
             guard let self else { return }
             let nickname = await MainActor.run { self.chatViewModel.nickname }
-            let npub = await MainActor.run {
-                try? self.idBridge.getCurrentNostrIdentity()?.npub
-            }
+            // VerificationService accepts an optional npub. MeshPriv uses
+            // the existing signed Noise QR without deriving a Nostr identity.
             await MainActor.run {
-                _ = VerificationService.shared.buildMyQRString(nickname: nickname, npub: npub)
+                _ = VerificationService.shared.buildMyQRString(nickname: nickname, npub: nil)
             }
         }
 
