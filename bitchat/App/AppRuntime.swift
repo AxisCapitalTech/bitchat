@@ -2,7 +2,6 @@ import BitFoundation
 import Combine
 import Foundation
 import SwiftUI
-import Tor
 import UserNotifications
 #if os(iOS)
 import UIKit
@@ -32,13 +31,6 @@ final class AppRuntime: ObservableObject {
     private let idBridge: NostrIdentityBridge
     private var cancellables = Set<AnyCancellable>()
     private var started = false
-    private var lastNostrRelayConnectedState = false
-    private var didHandleInitialNostrConnection = false
-
-    #if os(iOS)
-    private var didHandleInitialActive = false
-    private var didEnterBackground = false
-    #endif
 
     init(
         keychain: KeychainManagerProtocol = KeychainManager.makeDefault(),
@@ -119,9 +111,6 @@ final class AppRuntime: ObservableObject {
                 }
             )
         )
-        if chatViewModel.networkActivationAllowed {
-            GeoRelayDirectory.shared.prefetchIfNeeded()
-        }
         bindRuntimeObservers()
         NotificationDelegate.shared.runtime = self
     }
@@ -136,7 +125,6 @@ final class AppRuntime: ObservableObject {
         started = true
         NotificationDelegate.shared.runtime = self
         VerificationService.shared.configure(with: chatViewModel.meshService)
-        announceInitialTorStatusIfNeeded()
 
         Task(priority: .utility) { [weak self] in
             guard let self else { return }
@@ -149,8 +137,8 @@ final class AppRuntime: ObservableObject {
             }
         }
 
-        NetworkActivationService.shared.start()
-        GeohashPresenceService.shared.start()
+        // Mesh-only boot. The BLE transport starts in ChatViewModelBootstrapper.
+        // Internet activation, location channels and background relays are disabled.
         checkForSharedContent()
         performMediaMaintenance()
 
@@ -200,39 +188,13 @@ final class AppRuntime: ObservableObject {
         switch newPhase {
         case .background:
             record(.scenePhaseChanged(.background))
-            TorManager.shared.setAppForeground(false)
-            TorManager.shared.goDormantOnBackground()
             chatViewModel.endGeohashSampling()
-            NostrRelayManager.shared.disconnect()
-            didEnterBackground = true
 
         case .active:
             guard chatViewModel.networkActivationAllowed else { return }
             record(.scenePhaseChanged(.active))
+            // Do not start Tor, reconnect to Nostr or create network sessions.
             chatViewModel.meshService.startServices()
-            TorManager.shared.setAppForeground(true)
-            let shouldRefreshNostrConnections = didHandleInitialActive && didEnterBackground
-
-            if didHandleInitialActive && didEnterBackground {
-                if TorManager.shared.isAutoStartAllowed() && !TorManager.shared.isReady {
-                    TorManager.shared.ensureRunningOnForeground()
-                }
-            } else {
-                didHandleInitialActive = true
-            }
-
-            didEnterBackground = false
-
-            if shouldRefreshNostrConnections && TorManager.shared.isAutoStartAllowed() {
-                Task.detached {
-                    let _ = await TorManager.shared.awaitReady(timeout: 60)
-                    await MainActor.run {
-                        TorURLSession.shared.rebuild()
-                        NostrRelayManager.shared.resetAllConnections()
-                    }
-                }
-            }
-
             chatViewModel.handleDidBecomeActive()
             checkForSharedContent()
 
@@ -297,63 +259,8 @@ final class AppRuntime: ObservableObject {
 
 private extension AppRuntime {
     func bindRuntimeObservers() {
-        NostrRelayManager.shared.$isConnected
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] isConnected in
-                self?.handleNostrRelayConnectionChanged(isConnected)
-            }
-            .store(in: &cancellables)
-
-        NotificationCenter.default.publisher(for: .TorWillRestart)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard self?.chatViewModel.networkActivationAllowed == true
-                else { return }
-                self?.record(.torLifecycleChanged(.willRestart))
-                self?.chatViewModel.handleTorWillRestart()
-            }
-            .store(in: &cancellables)
-
-        NotificationCenter.default.publisher(for: .TorDidBecomeReady)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard self?.chatViewModel.networkActivationAllowed == true
-                else { return }
-                self?.record(.torLifecycleChanged(.didBecomeReady))
-                self?.chatViewModel.handleTorDidBecomeReady()
-            }
-            .store(in: &cancellables)
-
-        NotificationCenter.default.publisher(for: .TorWillStart)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard self?.chatViewModel.networkActivationAllowed == true
-                else { return }
-                self?.record(.torLifecycleChanged(.willStart))
-                self?.chatViewModel.handleTorWillStart()
-            }
-            .store(in: &cancellables)
-
-        NotificationCenter.default.publisher(for: .TorBootstrapDidStall)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                guard self?.chatViewModel.networkActivationAllowed == true
-                else { return }
-                self?.record(.torLifecycleChanged(.bootstrapDidStall))
-                self?.chatViewModel.handleTorBootstrapDidStall()
-            }
-            .store(in: &cancellables)
-
-        NotificationCenter.default.publisher(for: .TorUserPreferenceChanged)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] notification in
-                guard self?.chatViewModel.networkActivationAllowed == true
-                else { return }
-                self?.record(.torLifecycleChanged(.preferenceChanged))
-                self?.chatViewModel.handleTorPreferenceChanged(notification)
-            }
-            .store(in: &cancellables)
-
+        // No Nostr connectivity, Tor lifecycle or relay subscriptions.
+        // Preserve screenshot detection and purely local UI observers.
         #if os(iOS)
         NotificationCenter.default.publisher(for: UIApplication.userDidTakeScreenshotNotification)
             .receive(on: DispatchQueue.main)
@@ -381,46 +288,6 @@ private extension AppRuntime {
             privateDisplayName: privateConversationModel.selectedHeaderState?.displayName,
             activeChannel: locationChannelsModel.selectedChannel
         )
-    }
-
-    func handleNostrRelayConnectionChanged(_ isConnected: Bool) {
-        record(.nostrRelayConnectionChanged(isConnected))
-
-        let becameConnected = isConnected && !lastNostrRelayConnectedState
-        lastNostrRelayConnectedState = isConnected
-
-        guard chatViewModel.networkActivationAllowed,
-              started,
-              becameConnected else { return }
-
-        let isInitialConnection = !didHandleInitialNostrConnection
-        didHandleInitialNostrConnection = true
-
-        if !chatViewModel.nostrHandlersSetup {
-            chatViewModel.setupNostrMessageHandling()
-            chatViewModel.nostrHandlersSetup = true
-        }
-
-        guard !isInitialConnection else { return }
-
-        chatViewModel.resubscribeCurrentGeohash()
-        chatViewModel.geoChannelCoordinator?.refreshSampling()
-    }
-
-    func announceInitialTorStatusIfNeeded() {
-        if TorManager.shared.torEnforced &&
-            !chatViewModel.torStatusAnnounced &&
-            TorManager.shared.isAutoStartAllowed() {
-            chatViewModel.torStatusAnnounced = true
-            chatViewModel.addGeohashOnlySystemMessage(
-                String(localized: "system.tor.starting", comment: "System message when Tor is starting")
-            )
-        } else if !TorManager.shared.torEnforced && !chatViewModel.torStatusAnnounced {
-            chatViewModel.torStatusAnnounced = true
-            chatViewModel.addGeohashOnlySystemMessage(
-                String(localized: "system.tor.dev_bypass", comment: "System message when Tor bypass is enabled in development")
-            )
-        }
     }
 
     func handleScreenshotCaptured() {

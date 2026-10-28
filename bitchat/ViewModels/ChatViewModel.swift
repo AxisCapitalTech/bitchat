@@ -95,18 +95,9 @@ struct PanicNetworkLifecycle {
 
     static let noop = PanicNetworkLifecycle(stop: {}, restart: {})
 
-    static var live: PanicNetworkLifecycle {
-        PanicNetworkLifecycle(
-            stop: {
-                GeohashPresenceService.shared.stopForPanic()
-                NetworkActivationService.shared.stopForPanic()
-            },
-            restart: {
-                NetworkActivationService.shared.start()
-                GeohashPresenceService.shared.start()
-            }
-        )
-    }
+    // No online transport exists in the MeshPriv runtime.
+    // The BLE transport is suspended/restarted separately by panicClearAllData.
+    static var live: PanicNetworkLifecycle { .noop }
 }
 
 private struct PendingPrivateChatClear {
@@ -1703,7 +1694,7 @@ final class ChatViewModel: ObservableObject, BitchatDelegate, SynchronousMessage
         // Drop relay subscriptions, handlers, pending sends, and replay state.
         // Geohash DM handlers can capture pre-wipe Nostr identities, so a plain
         // disconnect is not enough here.
-        NostrRelayManager.shared.resetForPanicWipe()
+        // No relay manager is instantiated by the offline-only runtime.
         // Clearing relay handlers stops NEW events, but a detached gift-wrap
         // decrypt spawned just before the wipe still holds a pre-wipe key and
         // ciphertext; bump the pipeline's wipe generation so its result is
@@ -1778,10 +1769,7 @@ final class ChatViewModel: ObservableObject, BitchatDelegate, SynchronousMessage
                 meshService.startServices()
             }
 
-            if !TestEnvironment.isRunningTests {
-                nostrRelayManager = NostrRelayManager.shared
-                setupNostrMessageHandling()
-            }
+            // Restart only the BLE transport; never bootstrap Nostr or Tor.
             panicNetworkLifecycle.restart()
         }
 

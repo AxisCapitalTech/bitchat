@@ -28,10 +28,9 @@ struct ChatViewModelServiceBundle {
             idBridge: idBridge,
             identityManager: identityManager
         )
-        let nostrTransport = NostrTransport(keychain: keychain, idBridge: idBridge)
-        nostrTransport.senderPeerID = meshService.myPeerID
+        // MeshPriv phase 2: only the existing BLE transport may deliver messages.
         let messageRouter = MessageRouter(
-            transports: [meshService, nostrTransport],
+            transports: [meshService],
             outboxStore: outboxStore,
             metrics: sfMetrics
         )
@@ -75,11 +74,8 @@ final class ChatViewModelBootstrapper {
         bindPeerService()
         configureNoiseCallbacks()
         bindTransferProgress()
-        configureGeoChannels()
-        configureGateway()
-        configureBridge()
-        configureBridgeCourier()
-        bindTeleportState()
+        // MeshPriv offline-only: no geohash, Nostr gateway or relay bridge registration.
+        // Keep BLE, Noise, store-and-forward, media, and local notifications running.
         requestNotifications()
         registerObservers()
     }
@@ -205,7 +201,7 @@ private extension ChatViewModelBootstrapper {
             viewModel.updateBluetoothState(radio.getCurrentBluetoothState())
         }
 
-        viewModel.nostrRelayManager = NostrRelayManager.shared
+        // Do not construct a Nostr relay manager at mesh startup.
         viewModel.messageRouter.flushAllOutbox()
 
         Task { @MainActor [weak viewModel] in
