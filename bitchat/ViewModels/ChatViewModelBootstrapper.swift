@@ -74,11 +74,8 @@ final class ChatViewModelBootstrapper {
         bindPeerService()
         configureNoiseCallbacks()
         bindTransferProgress()
-        configureGeoChannels()
-        configureGateway()
-        configureBridge()
-        configureBridgeCourier()
-        bindTeleportState()
+        // MeshPriv offline-only: no geohash, Nostr gateway or relay bridge registration.
+        // Keep BLE, Noise, store-and-forward, media, and local notifications running.
         requestNotifications()
         registerObservers()
     }
