@@ -307,7 +307,9 @@ struct ConversationUIModelTests {
         #expect(!uiModel.isSentByCurrentUser(fromB))
     }
 
-    @Test @MainActor
+    // Preserved for historical upstream comparison; geohash/Nostr is not a
+    // supported MeshPriv transport. Re-enable only if this feature is restored.
+    @Test(.disabled("MeshPriv offline-only: Nostr/geohash transport removed")) @MainActor
     func switchingToMeshDropsMyMemoizedGeochatSender() async throws {
         let (viewModel, _) = makeChatViewModel(nickname: "alice")
         let uiModel = makeUIModel(for: viewModel)
@@ -322,7 +324,9 @@ struct ConversationUIModelTests {
         #expect(uiModel.ownGeoChatSender == nil)
     }
 
-    @Test @MainActor
+    // Preserved for historical upstream comparison; geohash/Nostr is not a
+    // supported MeshPriv transport. Re-enable only if this feature is restored.
+    @Test(.disabled("MeshPriv offline-only: Nostr/geohash transport removed")) @MainActor
     func panicWipeRetiresTheOldGeochatIdentity() async throws {
         let (viewModel, _) = makeChatViewModel(nickname: "alice")
         let uiModel = makeUIModel(for: viewModel)
@@ -398,7 +402,9 @@ struct ConversationUIModelTests {
         #expect(uiModel.isSentByCurrentUser(sent))
     }
 
-    @Test @MainActor
+    // Preserved for historical upstream comparison; geohash/Nostr is not a
+    // supported MeshPriv transport. Re-enable only if this feature is restored.
+    @Test(.disabled("MeshPriv offline-only: Nostr/geohash transport removed")) @MainActor
     func myGeoDMIsMine() async throws {
         let (viewModel, _) = makeChatViewModel(nickname: "alice")
         let uiModel = makeUIModel(for: viewModel)
@@ -416,7 +422,9 @@ struct ConversationUIModelTests {
         #expect(uiModel.isSentByCurrentUser(sent))
     }
 
-    @Test @MainActor
+    // Preserved for historical upstream comparison; geohash/Nostr is not a
+    // supported MeshPriv transport. Re-enable only if this feature is restored.
+    @Test(.disabled("MeshPriv offline-only: Nostr/geohash transport removed")) @MainActor
     func myGeochatPublicSendIsMine() async throws {
         let (viewModel, _) = makeChatViewModel(nickname: "alice")
         let uiModel = makeUIModel(for: viewModel)
