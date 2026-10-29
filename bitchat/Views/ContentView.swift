@@ -232,22 +232,22 @@ struct ContentView: View {
 
     var body: some View {
         mainContent
-        .confirmationDialog(
-            Text(
-                String(localized: "app_info.settings.danger.panic_confirm_title", defaultValue: "wipe all data?", comment: "Title of the confirmation dialog before a panic wipe")
-            ),
-            isPresented: $appChromeModel.showPanicConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive) {
-                appChromeModel.panicClearAllData()
-            } label: {
+            .confirmationDialog(
                 Text(
-                    String(localized: "app_info.settings.danger.panic_confirm_action", defaultValue: "wipe everything", comment: "Destructive confirmation button that performs the panic wipe")
-                )
+                    String(localized: "app_info.settings.danger.panic_confirm_title", defaultValue: "wipe all data?", comment: "Title of the confirmation dialog before a panic wipe")
+                ),
+                isPresented: $appChromeModel.showPanicConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(role: .destructive) {
+                    appChromeModel.panicClearAllData()
+                } label: {
+                    Text(
+                        String(localized: "app_info.settings.danger.panic_confirm_action", defaultValue: "wipe everything", comment: "Destructive confirmation button that performs the panic wipe")
+                    )
+                }
+                Button("common.cancel", role: .cancel) {}
             }
-            Button("common.cancel", role: .cancel) {}
-        }
             .onAppear { [conversationUIModel, voiceRecordingVM] in
                 conversationUIModel.setCurrentColorScheme(colorScheme)
                 conversationUIModel.setCurrentTheme(appTheme)
