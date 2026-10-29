@@ -107,7 +107,9 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSidebar = false
     // Shared iOS shell: native chat, BLE discovery and local Axis Pay demo.
+    #if os(iOS)
     @State private var meshPrivSection: MeshPrivSection = .chats
+    #endif
     @State private var selectedMessageSender: String?
     @State private var selectedMessageSenderID: PeerID?
     @FocusState private var isNicknameFieldFocused: Bool
