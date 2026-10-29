@@ -25,8 +25,9 @@ struct PaymentChipView: View {
         private static let cashuAllowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
 
         private static func cashuURL(from link: String) -> URL? {
+            // A Cashu bearer secret must never be redirected through HTTP(S).
             if let url = URL(string: link), url.scheme != nil {
-                return url
+                return url.scheme?.lowercased() == "cashu" ? url : nil
             }
             let enc = link.addingPercentEncoding(withAllowedCharacters: cashuAllowedCharacters) ?? link
             return URL(string: "cashu:\(enc)")
@@ -47,17 +48,6 @@ struct PaymentChipView: View {
                 return CashuTokenDecoder.bareToken(from: link)
             }
             return nil
-        }
-
-        /// Web fallback for redemption when no wallet handles `cashu:` URLs.
-        /// The token only reaches the site the user's browser loads; the app
-        /// itself never contacts a mint.
-        var cashuWebRedeemURL: URL? {
-            guard let token = cashuToken,
-                  let enc = token.addingPercentEncoding(withAllowedCharacters: Self.cashuAllowedCharacters) else {
-                return nil
-            }
-            return URL(string: "https://redeem.cashu.me/?token=\(enc)")
         }
 
         var emoji: String {
@@ -185,30 +175,15 @@ struct PaymentChipView: View {
         }
     }
 
-    /// Redemption is delegated: try a wallet registered for `cashu:` URLs
-    /// first, then fall back to the web redemption page. Uses the platform
-    /// opener directly (not the `openURL` environment) because the message
-    /// list overrides that action for cashu/lightning schemes without a
-    /// fallback path.
+    /// Cashu tokens are bearer instruments. Only hand them off to a wallet
+    /// registered for the cashu: URL scheme. Never include them in HTTPS URLs.
     private func redeemCashu() {
-        let walletURL = paymentType.url
-        let webURL = paymentType.cashuWebRedeemURL
+        guard let walletURL = paymentType.url,
+              walletURL.scheme?.lowercased() == "cashu" else { return }
         #if os(iOS)
-        if let walletURL {
-            UIApplication.shared.open(walletURL, options: [:]) { accepted in
-                if !accepted, let webURL {
-                    UIApplication.shared.open(webURL)
-                }
-            }
-        } else if let webURL {
-            UIApplication.shared.open(webURL)
-        }
+        UIApplication.shared.open(walletURL, options: [:])
         #else
-        if let walletURL, NSWorkspace.shared.urlForApplication(toOpen: walletURL) != nil {
-            NSWorkspace.shared.open(walletURL)
-        } else if let webURL {
-            NSWorkspace.shared.open(webURL)
-        } else if let walletURL {
+        if NSWorkspace.shared.urlForApplication(toOpen: walletURL) != nil {
             NSWorkspace.shared.open(walletURL)
         }
         #endif
