@@ -106,6 +106,10 @@ struct ContentView: View {
     @Environment(\.appTheme) private var appTheme
     @Environment(\.scenePhase) private var scenePhase
     @State private var showSidebar = false
+    // Shared iOS shell: native chat, BLE discovery and local Axis Pay demo.
+    #if os(iOS)
+    @State private var meshPrivSection: MeshPrivSection = .chats
+    #endif
     @State private var selectedMessageSender: String?
     @State private var selectedMessageSenderID: PeerID?
     @FocusState private var isNicknameFieldFocused: Bool
@@ -493,6 +497,31 @@ struct ContentView: View {
     /// so the translucency gains usable space instead of losing it.
     @ViewBuilder
     private var mainContent: some View {
+        #if os(iOS)
+        VStack(spacing: 0) {
+            switch meshPrivSection {
+            case .chats:
+                chatContent
+            case .nearby:
+                MeshPrivNearbyPanel(
+                    peers: peerListModel.meshRows,
+                    connectedCount: peerListModel.connectedMeshPeerCount
+                ) { peerID in
+                    meshPrivSection = .chats
+                    peerListModel.startConversation(with: peerID)
+                }
+            case .pay:
+                MeshPrivPaySandboxView()
+            }
+            MeshPrivMatrixTabBar(selection: $meshPrivSection)
+        }
+        #else
+        chatContent
+        #endif
+    }
+
+    @ViewBuilder
+    private var chatContent: some View {
         if usesGlassLayout {
             publicMessageList
                 .safeAreaInset(edge: .top, spacing: 0) {

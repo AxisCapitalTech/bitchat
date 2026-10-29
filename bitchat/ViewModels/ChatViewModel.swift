@@ -1640,6 +1640,9 @@ final class ChatViewModel: ObservableObject, BitchatDelegate, SynchronousMessage
         MeshEchoSettings.reset()
         NotificationPrivacySettings.reset()
         ComposerDraftStore.reset()
+        // Clear local Axis Pay sandbox entries during emergency wipe.
+        // These entries contain only fake invoice amounts, never real funds.
+        userDefaults.removeObject(forKey: "meshpriv.pay.sandbox.charges.v1")
         // A hand-added relay names an operator someone chose to route through,
         // which is the kind of trace a wipe should not leave behind.
         NostrRelaySettings.reset()
