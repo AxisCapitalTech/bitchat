@@ -326,7 +326,8 @@ struct ConversationUIModelTests {
 
     // Preserved for historical upstream comparison; geohash/Nostr is not a
     // supported MeshPriv transport. Re-enable only if this feature is restored.
-    @Test(.disabled("MeshPriv offline-only: Nostr/geohash transport removed")) @MainActor
+    // Geohash identity derivation still exists, so keep its privacy wipe test.
+    @Test @MainActor
     func panicWipeRetiresTheOldGeochatIdentity() async throws {
         let (viewModel, _) = makeChatViewModel(nickname: "alice")
         let uiModel = makeUIModel(for: viewModel)

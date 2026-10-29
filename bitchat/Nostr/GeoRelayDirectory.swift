@@ -151,7 +151,9 @@ private extension GeoRelayDirectoryDependencies {
                 try? await Task.sleep(nanoseconds: nanoseconds)
             },
             activeNotificationName: activeNotificationName,
-            autoStart: true,
+            // MeshPriv: no runtime remote georelay refresh. The local CSV
+            // remains available for legacy data compatibility until removal.
+            autoStart: false,
             validationPolicy: validationPolicy
         )
     }
@@ -195,11 +197,15 @@ final class GeoRelayDirectory {
     private let lastFetchKey = "georelay.lastFetchAt"
     private let dependencies: GeoRelayDirectoryDependencies
     private let cleanupState: CleanupState
+    // The production singleton must never access IP networks. Injected test
+    // instances keep their original behavior for existing isolated tests.
+    private let networkDisabledInProduction: Bool
 
     private var retryAttempt: Int = 0
     private var isFetching: Bool = false
 
     private init() {
+        self.networkDisabledInProduction = true
         self.dependencies = .live()
         self.cleanupState = CleanupState(notificationCenter: dependencies.notificationCenter)
         entries = loadLocalEntries()
@@ -211,6 +217,7 @@ final class GeoRelayDirectory {
     }
 
     internal init(dependencies: GeoRelayDirectoryDependencies) {
+        self.networkDisabledInProduction = false
         self.dependencies = dependencies
         self.cleanupState = CleanupState(notificationCenter: dependencies.notificationCenter)
         entries = loadLocalEntries()
@@ -242,6 +249,8 @@ final class GeoRelayDirectory {
 
     // MARK: - Remote Fetch
     func prefetchIfNeeded(force: Bool = false) {
+        // Prevent even explicit legacy callers from starting remote fetches.
+        guard !networkDisabledInProduction else { return }
         guard !isFetching else { return }
 
         let now = dependencies.now()
@@ -260,6 +269,7 @@ final class GeoRelayDirectory {
     }
 
     private func fetchRemote() {
+        guard !networkDisabledInProduction else { return }
         guard !isFetching else { return }
         isFetching = true
 

@@ -49,6 +49,7 @@ enum MeshPrivSection: String, CaseIterable, Identifiable {
 
 struct MeshPrivMatrixTabBar: View {
     @Binding var selection: MeshPrivSection
+    let onRequestPanic: () -> Void
 
     var body: some View {
         HStack(spacing: 4) {
@@ -79,6 +80,17 @@ struct MeshPrivMatrixTabBar: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selection == section ? [.isSelected] : [])
             }
+            // Emergency wipe remains reachable outside the Chats tab.
+            Button(action: onRequestPanic) {
+                Image(systemName: "exclamationmark.shield")
+                    .font(.system(size: 19, weight: .medium))
+                    .foregroundColor(MeshPrivPalette.secondary)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                meshPrivText("Apagar dados em emergência", "Emergency data wipe")
+            )
         }
         .padding(.horizontal, 12)
         .padding(.top, 6)

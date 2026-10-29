@@ -2151,6 +2151,26 @@ struct ChatViewModelPrivateMediaDeletionTests {
 struct ChatViewModelPanicTests {
 
     @Test @MainActor
+    func panicClearAllData_removesMeshPrivSandboxCharges() {
+        let key = "meshpriv.pay.sandbox.charges.v1"
+        let oldValue = UserDefaults.standard.object(forKey: key)
+        defer {
+            if let oldValue {
+                UserDefaults.standard.set(oldValue, forKey: key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+        }
+
+        UserDefaults.standard.set("[{\"id\":\"test-only\"}]", forKey: key)
+        let (viewModel, _) = makeTestableViewModel(panicMediaWipe: {})
+        let completed = viewModel.panicClearAllData(restartServices: false)
+
+        #expect(completed)
+        #expect(UserDefaults.standard.object(forKey: key) == nil)
+    }
+
+    @Test @MainActor
     func panicClearAllData_finishesMediaWipeBeforeReturning() {
         var wipeFinished = false
         let (viewModel, _) = makeTestableViewModel(panicMediaWipe: {
