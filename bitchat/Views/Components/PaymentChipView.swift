@@ -142,13 +142,6 @@ struct PaymentChipView: View {
                 } label: {
                     Label(String(localized: "content.payment.redeem_wallet", comment: "Context menu action opening a Cashu token in an ecash wallet app"), systemImage: "wallet.pass")
                 }
-                if let webURL = paymentType.cashuWebRedeemURL {
-                    Button {
-                        openExternalURL(webURL)
-                    } label: {
-                        Label(String(localized: "content.payment.redeem_web", comment: "Context menu action opening a Cashu token in the web redemption page"), systemImage: "safari")
-                    }
-                }
             }
         }
         .accessibilityLabel(Text(verbatim: accessibilityText))
@@ -186,14 +179,6 @@ struct PaymentChipView: View {
         if NSWorkspace.shared.urlForApplication(toOpen: walletURL) != nil {
             NSWorkspace.shared.open(walletURL)
         }
-        #endif
-    }
-
-    private func openExternalURL(_ url: URL) {
-        #if os(iOS)
-        UIApplication.shared.open(url)
-        #else
-        NSWorkspace.shared.open(url)
         #endif
     }
 
