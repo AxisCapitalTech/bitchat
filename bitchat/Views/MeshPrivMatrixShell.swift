@@ -385,7 +385,7 @@ struct MeshPrivPaySandboxView: View {
                                 Text("R$ " + String(format: "%.2f", charge.amountBRL))
                                     .font(.headline)
                                     .foregroundColor(.white)
-                                Text(charge.asset + " · " + charge.id.prefix(8))
+                                Text(charge.asset + " · " + String(charge.id.prefix(8)))
                                     .font(.caption2.monospaced())
                                     .foregroundColor(MeshPrivPalette.secondary)
                             }
