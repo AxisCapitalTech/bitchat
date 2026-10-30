@@ -527,7 +527,12 @@ struct ViewSmokeTests {
         _ = mount(paymentLightning)
 
         #expect(PaymentChipView.PaymentType.cashu("cashuA_test-token").url?.scheme == "cashu")
-        #expect(PaymentChipView.PaymentType.cashu("https://example.com/cashu").url?.absoluteString == "https://example.com/cashu")
+        // Cashu tokens are bearer credentials. Never allow an HTTPS
+        // fallback, even when the token arrives as an already-formed URL.
+        #expect(PaymentChipView.PaymentType.cashu("https://example.com/cashu").url == nil)
+        #expect(PaymentChipView.PaymentType.cashu("http://example.com/cashu").url == nil)
+        #expect(PaymentChipView.PaymentType.cashu("javascript:alert(1)").url == nil)
+        #expect(PaymentChipView.PaymentType.cashu("cashu:cashuA_test-token").url?.scheme == "cashu")
         #expect(PaymentChipView.PaymentType.lightning("lightning:lnbc1test").url?.scheme == "lightning")
     }
 
