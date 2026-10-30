@@ -11,11 +11,11 @@ import SwiftUI
 import UIKit
 
 private enum MeshPrivPalette {
-    static let background = Color(red: 0.015, green: 0.038, blue: 0.025)
-    static let surface = Color(red: 0.035, green: 0.09, blue: 0.062)
-    static let accent = Color(red: 0.24, green: 0.96, blue: 0.52)
-    static let border = Color(red: 0.11, green: 0.34, blue: 0.22)
-    static let secondary = Color(red: 0.63, green: 0.79, blue: 0.68)
+    static let background = MeshPrivV7Style.black
+    static let surface = MeshPrivV7Style.panel
+    static let accent = MeshPrivV7Style.neon
+    static let border = MeshPrivV7Style.line
+    static let secondary = MeshPrivV7Style.secondary
 }
 
 private func meshPrivText(_ portuguese: String, _ english: String) -> String {
@@ -27,6 +27,7 @@ enum MeshPrivSection: String, CaseIterable, Identifiable {
     case chats
     case nearby
     case pay
+    case profile
 
     var id: String { rawValue }
 
@@ -35,6 +36,7 @@ enum MeshPrivSection: String, CaseIterable, Identifiable {
         case .chats: meshPrivText("Conversas", "Chats")
         case .nearby: meshPrivText("Mesh", "Mesh")
         case .pay: meshPrivText("Carteira", "Wallet")
+        case .profile: meshPrivText("Perfil", "Profile")
         }
     }
 
@@ -43,13 +45,13 @@ enum MeshPrivSection: String, CaseIterable, Identifiable {
         case .chats: "bubble.left.and.bubble.right"
         case .nearby: "antenna.radiowaves.left.and.right"
         case .pay: "wallet.pass"
+        case .profile: "person.crop.circle"
         }
     }
 }
 
 struct MeshPrivMatrixTabBar: View {
     @Binding var selection: MeshPrivSection
-    let onRequestPanic: () -> Void
 
     var body: some View {
         HStack(spacing: 4) {
@@ -80,17 +82,6 @@ struct MeshPrivMatrixTabBar: View {
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selection == section ? [.isSelected] : [])
             }
-            // Emergency wipe remains reachable outside the Chats tab.
-            Button(action: onRequestPanic) {
-                Image(systemName: "exclamationmark.shield")
-                    .font(.system(size: 19, weight: .medium))
-                    .foregroundColor(MeshPrivPalette.secondary)
-                    .frame(width: 44, height: 44)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(
-                meshPrivText("Apagar dados em emergência", "Emergency data wipe")
-            )
         }
         .padding(.horizontal, 12)
         .padding(.top, 6)
