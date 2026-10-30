@@ -516,7 +516,9 @@ struct ContentView: View {
     private var mainContent: some View {
         #if os(iOS)
         VStack(spacing: 0) {
-            MeshPrivNativeHeader()
+            MeshPrivNativeHeader {
+                appChromeModel.requestPanicWipe()
+            }
             switch meshPrivSection {
             case .chats:
                 if meshPrivShowLocalChannel {
@@ -564,9 +566,7 @@ struct ContentView: View {
                     appChromeModel.requestPanicWipe()
                 }
             }
-            MeshPrivMatrixTabBar(selection: $meshPrivSection) {
-                appChromeModel.requestPanicWipe()
-            }
+            MeshPrivMatrixTabBar(selection: $meshPrivSection)
         }
         #else
         chatContent
