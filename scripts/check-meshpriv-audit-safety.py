@@ -64,7 +64,11 @@ else:
         errors.append("A4: panic confirmation must be hosted exactly once at root")
 
 tabs = read("bitchat/Views/MeshPrivMatrixShell.swift")
-require("A4/panic button", tabs, "Button(action: onRequestPanic)")
+native = read("bitchat/Views/MeshPrivNativeV7.swift")
+require("A4/native header panic button", native, "Button(action: onRequestPanic)")
+require("A4/native profile panic button", native, "func infoRow(")
+require("A4/native header is present", root, "MeshPrivNativeHeader {")
+require("A4/four tabs", tabs, "case profile")
 
 vm = read("bitchat/ViewModels/ChatViewModel.swift")
 require("A8/panic storage", vm, 'userDefaults.removeObject(forKey: "meshpriv.pay.sandbox.charges.v1")')
