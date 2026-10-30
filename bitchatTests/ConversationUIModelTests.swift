@@ -329,7 +329,7 @@ struct ConversationUIModelTests {
     // the legacy display context directly, rather than enabling a forbidden
     // location transport or network subscription.
     @Test @MainActor
-    func panicWipeRetiresTheOldGeochatIdentity() throws {
+    func panicWipeRetiresTheOldGeochatIdentity() async throws {
         let (viewModel, _) = makeChatViewModel(nickname: "alice")
         let uiModel = makeUIModel(for: viewModel)
         Self.show(geohash: Self.geohash, in: viewModel)
@@ -343,7 +343,12 @@ struct ConversationUIModelTests {
         let completed = viewModel.panicClearAllData(restartServices: false)
         #expect(completed)
         #expect(viewModel.activeChannel == .mesh)
-        #expect(uiModel.ownGeoChatSender == nil)
+        // The UI model receives the ConversationStore channel change on the
+        // main queue; permit that delivery without relaxing the wipe check.
+        #expect(await TestHelpers.waitUntil(
+            { uiModel.ownGeoChatSender == nil },
+            timeout: TestConstants.settleTimeout
+        ))
 
         Self.show(geohash: Self.geohash, in: viewModel)
         let newHex = try Self.myGeoHex(viewModel)
