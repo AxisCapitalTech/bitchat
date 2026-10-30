@@ -265,6 +265,28 @@ jobs:
             -resultBundlePath "${{ github.workspace }}/MeshPriv-V8-visual-review.xcresult" \
             test
 
+      - name: Export native Matrix review screenshots as images
+        if: always()
+        continue-on-error: true
+        run: |
+          result="${{ github.workspace }}/MeshPriv-V8-visual-review.xcresult"
+          output="${{ github.workspace }}/MeshPriv-V8-screen-images"
+          if [ -d "$result" ]; then
+            mkdir -p "$output"
+            xcrun xcresulttool export attachments \
+              --path "$result" --output-path "$output"
+            find "$output" -maxdepth 2 -type f | sort
+          fi
+
+      - name: Upload V8 visual images for direct inspection
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshpriv-v8-native-screen-png
+          path: ${{ github.workspace }}/MeshPriv-V8-screen-images/
+          retention-days: 7
+          if-no-files-found: warn
+
       # Four PT-BR Matrix renders are attached by MeshPrivV8VisualSnapshots.
       # Keep evidence available even when a simulator test fails.
       - name: Preserve V8 simulator screenshots for visual comparison
