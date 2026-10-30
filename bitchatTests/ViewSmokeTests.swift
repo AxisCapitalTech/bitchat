@@ -536,6 +536,29 @@ struct ViewSmokeTests {
         #expect(PaymentChipView.PaymentType.lightning("lightning:lnbc1test").url?.scheme == "lightning")
     }
 
+    #if os(iOS)
+    @Test @MainActor
+    func meshPrivV7NativeScreens_renderEmptyPeerState() {
+        // The real-data home/radar must render with zero BLE peers; no
+        // fabricated contacts, positions or wallet balances are permitted.
+        _ = mount(MeshPrivNativeHeader(onRequestPanic: {}))
+        _ = mount(MeshPrivNativeChatsHome(
+            peers: [],
+            recentChats: [],
+            onOpenPeer: { _ in },
+            onOpenPublicChat: {}
+        ))
+        _ = mount(MeshPrivNativeRadar(peers: [], onOpenPeer: { _ in }))
+        _ = mount(MeshPrivNativeProfile(
+            reachableCount: 0,
+            onRequestPanic: {}
+        ))
+        _ = mount(MeshPrivMatrixTabBar(
+            selection: .constant(.chats)
+        ))
+    }
+    #endif
+
     @Test
     func contentShellViews_renderPublicAndPrivateBranches() async {
         let (viewModel, transport, _) = makeSmokeViewModel()
