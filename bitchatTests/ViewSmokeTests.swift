@@ -537,7 +537,6 @@ struct ViewSmokeTests {
     }
 
     #if os(iOS)
-    #if os(iOS)
     @Test @MainActor
     func meshPrivV8Tabs_respectPortugueseAndEnglishLocales() {
         let brazil = Locale(identifier: "pt_BR")
@@ -548,7 +547,6 @@ struct ViewSmokeTests {
         #expect(MeshPrivSection.profile.localizedLabel(locale: brazil) == "Perfil")
         #expect(MeshPrivSection.chats.localizedLabel(locale: english) == "Chats")
     }
-    #endif
 
     @Test @MainActor
     func meshPrivV7NativeScreens_renderEmptyPeerState() {
