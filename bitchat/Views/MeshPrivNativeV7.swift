@@ -115,6 +115,7 @@ private struct MeshPrivNativeConversation: Identifiable {
     let isReachable: Bool
     let isUnread: Bool
     let lastActivity: Date?
+    let lastMessagePreview: String?
 
     var id: String { peerID.id }
 }
@@ -190,7 +191,8 @@ struct MeshPrivNativeChatsHome: View {
                     isConnected: peer?.isConnected ?? false,
                     isReachable: peer?.isReachable ?? false,
                     isUnread: recent.hasUnread || (peer?.hasUnread ?? false),
-                    lastActivity: recent.lastActivity
+                    lastActivity: recent.lastActivity,
+                    lastMessagePreview: recent.lastMessagePreview
                 )
             )
         }
@@ -206,7 +208,8 @@ struct MeshPrivNativeChatsHome: View {
                     isConnected: peer.isConnected,
                     isReachable: peer.isReachable,
                     isUnread: peer.hasUnread,
-                    lastActivity: nil
+                    lastActivity: nil,
+                    lastMessagePreview: nil
                 )
             )
         }
@@ -329,29 +332,39 @@ struct MeshPrivNativeChatsHome: View {
                                             }
                                         }
                                         HStack(spacing: 5) {
-                                            Circle()
-                                                .fill(
-                                                    chat.isConnected
-                                                        ? MeshPrivV7Style.neon
-                                                        : MeshPrivV7Style.secondary
-                                                )
-                                                .frame(width: 6, height: 6)
-                                            Text(
-                                                chat.isConnected
-                                                    ? meshPrivNativeLabel(
-                                                        "Bluetooth direto", "Direct Bluetooth"
+                                            if let preview = chat.lastMessagePreview {
+                                                Image(systemName: "lock.fill")
+                                                    .font(.system(size: 8))
+                                                    .foregroundColor(MeshPrivV7Style.neon)
+                                                Text(verbatim: preview)
+                                                    .font(.system(size: 11))
+                                                    .foregroundColor(MeshPrivV7Style.secondary)
+                                                    .lineLimit(1)
+                                            } else {
+                                                Circle()
+                                                    .fill(
+                                                        chat.isConnected
+                                                            ? MeshPrivV7Style.neon
+                                                            : MeshPrivV7Style.secondary
                                                     )
-                                                    : chat.isReachable
+                                                    .frame(width: 6, height: 6)
+                                                Text(
+                                                    chat.isConnected
                                                         ? meshPrivNativeLabel(
-                                                            "Alcançável via mesh", "Mesh reachable"
+                                                            "Bluetooth direto", "Direct Bluetooth"
                                                         )
-                                                        : meshPrivNativeLabel(
-                                                            "Conversa anterior", "Previous chat"
-                                                        )
-                                            )
-                                            .font(.system(size: 11))
-                                            .foregroundColor(MeshPrivV7Style.secondary)
-                                            .lineLimit(1)
+                                                        : chat.isReachable
+                                                            ? meshPrivNativeLabel(
+                                                                "Alcançável via mesh", "Mesh reachable"
+                                                            )
+                                                            : meshPrivNativeLabel(
+                                                                "Conversa anterior", "Previous chat"
+                                                            )
+                                                )
+                                                .font(.system(size: 11))
+                                                .foregroundColor(MeshPrivV7Style.secondary)
+                                                .lineLimit(1)
+                                            }
                                         }
                                     }
                                     if chat.isUnread {
