@@ -132,6 +132,13 @@ struct MeshPrivNativeChatsHome: View {
         var seen = Set<String>()
 
         for recent in recentChats.sorted(by: { $0.lastActivity > $1.lastActivity }) {
+            // Historical geohash/bridge/group threads may survive in the
+            // conversation store, but are not transportable over BLE mesh.
+            // Never advertise them as reachable native BLE conversations.
+            guard !recent.peerID.isGeoDM,
+                  !recent.peerID.isGeoChat,
+                  !recent.peerID.isBridge,
+                  !recent.peerID.isGroup else { continue }
             let peer = peers.first { $0.peerID == recent.peerID }
             guard seen.insert(recent.id).inserted else { continue }
             result.append(
