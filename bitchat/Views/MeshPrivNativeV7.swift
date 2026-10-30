@@ -18,10 +18,6 @@ enum MeshPrivV7Style {
     static let secondary = Color(red: 0.63, green: 0.79, blue: 0.70)
 }
 
-private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
-    Locale.current.language.languageCode?.identifier == "pt" ? portuguese : english
-}
-
 /// Original triangular mesh symbol used across the native Matrix shell.
 /// Shape-based artwork stays crisp at every screen density.
 private struct MeshPrivNativeBrandMark: View {
@@ -61,6 +57,12 @@ private struct MeshPrivNativeBrandMark: View {
 }
 
 struct MeshPrivNativeHeader: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let onRequestPanic: () -> Void
 
     var body: some View {
@@ -153,6 +155,12 @@ private struct MeshPrivNativeAvatar: View {
 /// No fabricated chats or locations: display only peers/recent DMs emitted
 /// by PeerListModel and reuse startConversation(with:) from the upstream app.
 struct MeshPrivNativeChatsHome: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let peers: [MeshPeerRow]
     let recentChats: [RecentChatRow]
     let onOpenPeer: (PeerID) -> Void
@@ -418,6 +426,12 @@ struct MeshPrivNativeChatsHome: View {
 /// Connections and statuses are real BLE model data. The selected peer opens
 /// its actual upstream conversation.
 struct MeshPrivNativeRadar: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let peers: [MeshPeerRow]
     let onOpenPeer: (PeerID) -> Void
 
@@ -613,6 +627,12 @@ struct MeshPrivNativeRadar: View {
 }
 
 struct MeshPrivNativeProfile: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let reachableCount: Int
     let onRequestPanic: () -> Void
 
