@@ -40,6 +40,16 @@ enum MeshPrivSection: String, CaseIterable, Identifiable {
         }
     }
 
+    func localizedLabel(locale: Locale) -> String {
+        let portuguese = locale.language.languageCode?.identifier == "pt"
+        switch self {
+        case .chats: return portuguese ? "Conversas" : "Chats"
+        case .nearby: return portuguese ? "Perto de mim" : "Nearby"
+        case .pay: return portuguese ? "Carteira" : "Wallet"
+        case .profile: return portuguese ? "Perfil" : "Profile"
+        }
+    }
+
     var symbol: String {
         switch self {
         case .chats: "bubble.left.and.bubble.right"
@@ -51,6 +61,7 @@ enum MeshPrivSection: String, CaseIterable, Identifiable {
 }
 
 struct MeshPrivMatrixTabBar: View {
+    @Environment(\.locale) private var locale
     @Binding var selection: MeshPrivSection
 
     var body: some View {
@@ -63,7 +74,7 @@ struct MeshPrivMatrixTabBar: View {
                         Image(systemName: section.symbol)
                             .font(.system(size: 18, weight: .medium))
                             .frame(height: 23)
-                        Text(section.label)
+                        Text(section.localizedLabel(locale: locale))
                             .font(.system(size: 11, weight: .semibold))
                     }
                     .foregroundColor(
@@ -95,6 +106,12 @@ struct MeshPrivMatrixTabBar: View {
 }
 
 struct MeshPrivNearbyPanel: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivText(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let peers: [MeshPeerRow]
     let connectedCount: Int
     let onOpenPeer: (PeerID) -> Void
@@ -239,6 +256,12 @@ struct MeshPrivDemoCharge: Identifiable, Codable {
 }
 
 struct MeshPrivPaySandboxView: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivText(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     @AppStorage("meshpriv.pay.sandbox.charges.v1") private var chargeJSON = "[]"
     @State private var amountText = "50.00"
     @State private var asset = "USDC"
@@ -557,6 +580,12 @@ struct MeshPrivPaySandboxView: View {
 }
 
 private struct MeshPrivDemoChargeSheet: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivText(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let charge: MeshPrivDemoCharge
     let onSimulate: () -> Void
     @Environment(\.dismiss) private var dismiss
