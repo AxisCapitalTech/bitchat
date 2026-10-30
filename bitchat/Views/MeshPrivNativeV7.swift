@@ -22,16 +22,50 @@ private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> Str
     Locale.current.language.languageCode?.identifier == "pt" ? portuguese : english
 }
 
+/// Original triangular mesh symbol used across the native Matrix shell.
+/// Shape-based artwork stays crisp at every screen density.
+private struct MeshPrivNativeBrandMark: View {
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let height = geometry.size.height
+            ZStack {
+                Path { path in
+                    path.move(to: CGPoint(x: width * 0.15, y: height * 0.06))
+                    path.addLine(to: CGPoint(x: width * 0.91, y: height * 0.5))
+                    path.addLine(to: CGPoint(x: width * 0.15, y: height * 0.94))
+                    path.closeSubpath()
+                }
+                .stroke(
+                    MeshPrivV7Style.neon,
+                    style: StrokeStyle(lineWidth: 1.9, lineJoin: .round)
+                )
+
+                Path { path in
+                    path.move(to: CGPoint(x: width * 0.15, y: height * 0.06))
+                    path.addLine(to: CGPoint(x: width * 0.52, y: height * 0.5))
+                    path.addLine(to: CGPoint(x: width * 0.15, y: height * 0.94))
+                    path.move(to: CGPoint(x: width * 0.52, y: height * 0.5))
+                    path.addLine(to: CGPoint(x: width * 0.91, y: height * 0.5))
+                }
+                .stroke(
+                    MeshPrivV7Style.neon.opacity(0.85),
+                    style: StrokeStyle(lineWidth: 1.25, lineJoin: .round)
+                )
+            }
+        }
+        .frame(width: 30, height: 32)
+        .shadow(color: MeshPrivV7Style.neon.opacity(0.5), radius: 7)
+        .accessibilityHidden(true)
+    }
+}
+
 struct MeshPrivNativeHeader: View {
     let onRequestPanic: () -> Void
 
     var body: some View {
         HStack(spacing: 9) {
-            Image(systemName: "point.3.connected.trianglepath.dotted")
-                .font(.system(size: 23, weight: .medium))
-                .foregroundColor(MeshPrivV7Style.neon)
-                .frame(width: 32, height: 32)
-                .shadow(color: MeshPrivV7Style.neon.opacity(0.5), radius: 7)
+            MeshPrivNativeBrandMark()
 
             HStack(spacing: 0) {
                 Text("Mesh")
