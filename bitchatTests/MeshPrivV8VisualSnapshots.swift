@@ -19,25 +19,44 @@ final class MeshPrivV8VisualSnapshots: XCTestCase {
 
     func testMatrixScreensAttachReviewImages() throws {
         let peers: [MeshPeerRow] = []
-        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        // Test-only examples: all visible contact names and previews are
+        // synthetic. Use relative times that look like active local chats.
+        let now = Date()
         let demoRecent: [RecentChatRow] = [
             .init(
                 peerID: PeerID(str: "0011223344556677"),
                 displayName: "Contato A · DEMO",
                 hasUnread: true,
-                lastActivity: now
+                lastActivity: now.addingTimeInterval(-120),
+                lastMessagePreview: "Tudo certo para o encontro de hoje?"
             ),
             .init(
                 peerID: PeerID(str: "0011223344556688"),
                 displayName: "Contato B · DEMO",
                 hasUnread: false,
-                lastActivity: now.addingTimeInterval(-3_600)
+                lastActivity: now.addingTimeInterval(-1_800),
+                lastMessagePreview: "Mensagem recebida pelo canal privado."
             ),
             .init(
                 peerID: PeerID(str: "0011223344556699"),
                 displayName: "Contato C · DEMO",
                 hasUnread: false,
-                lastActivity: now.addingTimeInterval(-86_400)
+                lastActivity: now.addingTimeInterval(-4_000),
+                lastMessagePreview: "Combinado! Até mais."
+            ),
+            .init(
+                peerID: PeerID(str: "00112233445566AA"),
+                displayName: "Contato D · DEMO",
+                hasUnread: false,
+                lastActivity: now.addingTimeInterval(-9_000),
+                lastMessagePreview: "Podemos conversar quando estiver perto."
+            ),
+            .init(
+                peerID: PeerID(str: "00112233445566BB"),
+                displayName: "Contato E · DEMO",
+                hasUnread: true,
+                lastActivity: now.addingTimeInterval(-21_000),
+                lastMessagePreview: "Recebido com segurança."
             )
         ]
 
