@@ -28,7 +28,6 @@ final class AppRuntime: ObservableObject {
     let boardAlertsModel: BoardAlertsModel
     let sharedContentImportModel: SharedContentImportModel
 
-    private let idBridge: NostrIdentityBridge
     private var cancellables = Set<AnyCancellable>()
     private var started = false
 
@@ -37,7 +36,6 @@ final class AppRuntime: ObservableObject {
         idBridge: NostrIdentityBridge = NostrIdentityBridge(),
         sharedContentStore: SharedContentStore? = nil
     ) {
-        self.idBridge = idBridge
         let conversations = ConversationStore()
         let peerIdentityStore = PeerIdentityStore()
         let locationPresenceStore = LocationPresenceStore()
