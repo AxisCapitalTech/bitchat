@@ -11,6 +11,22 @@ O material aprovado é uma composição publicitária em perspectiva, não
 screenshots em resolução nativa. Não inferir equivalência de pixels de um
 mockup em perspectiva.
 
+### Auditoria real das capturas — 30/10/2026
+- Artefato inspecionado: run `40990882082`, `meshpriv-v8-native-screen-png`
+  (4 imagens de 786×1560 px renderizadas a 2×).
+- Falha CONFIRMADA de geração de capturas: todas as quatro imagens exibiam
+  somente cabeçalho Matrix e barra inferior, com o corpo central uniformemente
+  preto. Uma verificação de contraste em pixels na região central encontrou
+  **0 amostras de contraste nas quatro telas**. Portanto, a suíte anterior
+  passou falsamente como validação visual; NÃO declarar paridade com a arte.
+- Patch `bc63da43`: trocar `ImageRenderer` isolado pelo
+  `UIHostingController` em `UIWindow`, permitir ciclo de atualização
+  de layout SwiftUI e adicionar asserção de contraste no corpo central.
+- Critério: a próxima execução iOS precisa aprovar a asserção anti-blank
+  e exportar conteúdos reais de Conversas, Radar, Carteira e Perfil.
+- Se a asserção ainda falhar, corrigir renderização/layout novamente;
+  nunca remover o assert ou aceitar screenshots vazios.
+
 ### Provas de interface (capturas de simulador)
 A suíte `bitchatTests/MeshPrivV8VisualSnapshots.swift` captura **quatro telas**
 em 393×780 pt, PT-BR e tema escuro, anexadas ao resultado XCTest e ao artefato
