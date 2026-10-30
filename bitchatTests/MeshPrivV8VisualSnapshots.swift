@@ -92,21 +92,87 @@ final class MeshPrivV8VisualSnapshots: XCTestCase {
                 .background(MeshPrivV7Style.black)
         }
 
-        let renderer = ImageRenderer(content: screen)
-        renderer.proposedSize = ProposedViewSize(
-            width: canvasWidth,
-            height: canvasHeight
+        // ImageRenderer can return a valid image before a ScrollView has
+        // performed its hosted layout. The old PNGs contained just the
+        // header and tab bar, with all four screen bodies blank.
+        // Render through a real UIKit hierarchy instead.
+        let host = UIHostingController(rootView: screen)
+        host.view.frame = CGRect(
+            x: 0, y: 0, width: canvasWidth, height: canvasHeight
         )
-        renderer.scale = 2
+        let window = UIWindow(frame: host.view.bounds)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
 
-        let image = try XCTUnwrap(
-            renderer.uiImage,
-            "SwiftUI snapshot could not render for \(name)"
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+        // Allow SwiftUI's first update pass to realize lazy/scroll content.
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        host.view.setNeedsLayout()
+        host.view.layoutIfNeeded()
+
+        let renderer = UIGraphicsImageRenderer(
+            size: host.view.bounds.size,
+            format: {
+                let format = UIGraphicsImageRendererFormat()
+                format.scale = 2
+                format.opaque = true
+                return format
+            }()
         )
+        let image = renderer.image { _ in
+            host.view.drawHierarchy(
+                in: host.view.bounds,
+                afterScreenUpdates: true
+            )
+        }
+
+        // Never declare a screenshot test green for an empty body again.
+        try assertCentralContentIsVisible(image, name: name)
         let attachment = XCTAttachment(image: image)
         attachment.name = "MESHPRIV-V8-\(name)-393x780"
         attachment.lifetime = .keepAlways
         add(attachment)
+
+    }
+
+    private func assertCentralContentIsVisible(
+        _ image: UIImage,
+        name: String
+    ) throws {
+        let cgImage = try XCTUnwrap(image.cgImage)
+        let width = cgImage.width
+        let height = cgImage.height
+        let bytesPerPixel = 4
+        let rowBytes = width * bytesPerPixel
+        var pixels = [UInt8](repeating: 0, count: height * rowBytes)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixels,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: rowBytes,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        // Exclude the header and footer: both rendered correctly in the
+        // previous bug and gave a false impression of successful snapshots.
+        var contrastPixels = 0
+        for y in stride(from: height / 6, to: height * 5 / 6, by: 8) {
+            for x in stride(from: width / 12, to: width * 11 / 12, by: 8) {
+                let index = y * rowBytes + x * bytesPerPixel
+                if max(pixels[index], pixels[index + 1], pixels[index + 2]) > 75 {
+                    contrastPixels += 1
+                }
+            }
+        }
+        XCTAssertGreaterThan(
+            contrastPixels, 40,
+            "Matrix screenshot \(name) has an empty central body"
+        )
     }
 }
 #endif
