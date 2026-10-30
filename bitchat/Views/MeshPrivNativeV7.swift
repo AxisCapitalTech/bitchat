@@ -417,8 +417,8 @@ struct MeshPrivNativeRadar: View {
                             let peer = visible[index]
                             let angle = Double(index) * 2 * .pi
                                 / Double(max(1, min(visible.count, 6))) - .pi / 2
-                            let x = diameter / 2 + cos(angle) * diameter * 0.33
-                            let y = diameter / 2 + sin(angle) * diameter * 0.33
+                            let x = diameter / 2 + CGFloat(cos(angle)) * diameter * 0.33
+                            let y = diameter / 2 + CGFloat(sin(angle)) * diameter * 0.33
 
                             Path { path in
                                 path.move(to: CGPoint(x: diameter / 2, y: diameter / 2))
