@@ -109,6 +109,7 @@ struct ContentView: View {
     // Shared iOS shell: native chat, BLE discovery and local Axis Pay demo.
     #if os(iOS)
     @State private var meshPrivSection: MeshPrivSection = .chats
+    @State private var meshPrivShowLocalChannel = false
     #endif
     @State private var selectedMessageSender: String?
     @State private var selectedMessageSenderID: PeerID?
@@ -515,19 +516,53 @@ struct ContentView: View {
     private var mainContent: some View {
         #if os(iOS)
         VStack(spacing: 0) {
+            MeshPrivNativeHeader()
             switch meshPrivSection {
             case .chats:
-                chatContent
+                if meshPrivShowLocalChannel {
+                    VStack(spacing: 0) {
+                        Button {
+                            meshPrivShowLocalChannel = false
+                        } label: {
+                            Label(
+                                String(localized: "chats.section.header", defaultValue: "chats"),
+                                systemImage: "chevron.left"
+                            )
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(MeshPrivV7Style.neon)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 9)
+                        }
+                        .buttonStyle(.plain)
+                        chatContent
+                    }
+                } else {
+                    MeshPrivNativeChatsHome(
+                        peers: peerListModel.meshRows,
+                        recentChats: peerListModel.recentChatRows,
+                        onOpenPeer: { peerID in
+                            peerListModel.startConversation(with: peerID)
+                        },
+                        onOpenPublicChat: {
+                            meshPrivShowLocalChannel = true
+                        }
+                    )
+                }
             case .nearby:
-                MeshPrivNearbyPanel(
-                    peers: peerListModel.meshRows,
-                    connectedCount: peerListModel.connectedMeshPeerCount
-                ) { peerID in
+                MeshPrivNativeRadar(peers: peerListModel.meshRows) { peerID in
                     meshPrivSection = .chats
+                    meshPrivShowLocalChannel = false
                     peerListModel.startConversation(with: peerID)
                 }
             case .pay:
                 MeshPrivPaySandboxView()
+            case .profile:
+                MeshPrivNativeProfile(
+                    reachableCount: peerListModel.reachableMeshPeerCount
+                ) {
+                    appChromeModel.requestPanicWipe()
+                }
             }
             MeshPrivMatrixTabBar(selection: $meshPrivSection) {
                 appChromeModel.requestPanicWipe()
