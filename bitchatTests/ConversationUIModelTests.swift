@@ -324,28 +324,40 @@ struct ConversationUIModelTests {
         #expect(uiModel.ownGeoChatSender == nil)
     }
 
-    // Preserved for historical upstream comparison; geohash/Nostr is not a
-    // supported MeshPriv transport. Re-enable only if this feature is restored.
-    // Geohash identity derivation still exists, so keep its privacy wipe test.
+    // Geohash isn't a supported MeshPriv transport, but obsolete identity
+    // data still exists in this fork. This security test intentionally uses
+    // the legacy display context directly, rather than enabling a forbidden
+    // location transport or network subscription.
     @Test @MainActor
     func panicWipeRetiresTheOldGeochatIdentity() async throws {
         let (viewModel, _) = makeChatViewModel(nickname: "alice")
         let uiModel = makeUIModel(for: viewModel)
-        #expect(await Self.switchAndSettle(to: Self.locationChannel, in: viewModel, uiModel: uiModel))
+        Self.show(geohash: Self.geohash, in: viewModel)
         let oldHex = try Self.myGeoHex(viewModel)
         let beforeWipe = row("alice#\(oldHex.suffix(4))", PeerID(nostr: oldHex))
         #expect(uiModel.isSentByCurrentUser(beforeWipe))
         #expect(uiModel.ownGeoChatSender != nil)
 
-        // The wipe reseeds every geohash identity and returns to the mesh,
-        // which takes the retired key out of the memo too.
-        viewModel.panicClearAllData()
-        #expect(await TestHelpers.waitUntil({ uiModel.ownGeoChatSender == nil }, timeout: TestConstants.settleTimeout))
+        // Panic must retire the old public key and clear the memoized sender,
+        // even though a location-channel switch is no longer permitted.
+        let completed = viewModel.panicClearAllData(restartServices: false)
+        #expect(completed)
+        #expect(viewModel.activeChannel == .mesh)
+        // The UI model receives the ConversationStore channel change on the
+        // main queue; permit that delivery without relaxing the wipe check.
+        #expect(await TestHelpers.waitUntil(
+            { uiModel.ownGeoChatSender == nil },
+            timeout: TestConstants.settleTimeout
+        ))
+
         Self.show(geohash: Self.geohash, in: viewModel)
         let newHex = try Self.myGeoHex(viewModel)
         #expect(newHex != oldHex)
-
-        #expect(uiModel.isSentByCurrentUser(row("\(viewModel.nickname)#\(newHex.suffix(4))", PeerID(nostr: newHex))))
+        #expect(
+            uiModel.isSentByCurrentUser(
+                row("\(viewModel.nickname)#\(newHex.suffix(4))", PeerID(nostr: newHex))
+            )
+        )
         #expect(!uiModel.isSentByCurrentUser(beforeWipe))
     }
 
