@@ -23,6 +23,8 @@ private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> Str
 }
 
 struct MeshPrivNativeHeader: View {
+    let onRequestPanic: () -> Void
+
     var body: some View {
         HStack(spacing: 9) {
             Image(systemName: "point.3.connected.trianglepath.dotted")
@@ -52,6 +54,17 @@ struct MeshPrivNativeHeader: View {
                 .padding(.vertical, 6)
                 .background(MeshPrivV7Style.panel, in: Capsule())
                 .overlay(Capsule().stroke(MeshPrivV7Style.line, lineWidth: 1))
+
+            Button(action: onRequestPanic) {
+                Image(systemName: "exclamationmark.shield")
+                    .font(.system(size: 16))
+                    .foregroundColor(MeshPrivV7Style.secondary)
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                meshPrivNativeLabel("Apagar dados em emergência", "Emergency wipe")
+            )
         }
         .padding(.horizontal, 17)
         .padding(.vertical, 8)
