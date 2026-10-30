@@ -262,7 +262,19 @@ jobs:
             -destination "platform=iOS Simulator,id=${{ steps.destination.outputs.id }}" \
             -parallel-testing-enabled NO \
             CODE_SIGNING_ALLOWED=NO \
+            -resultBundlePath "${{ github.workspace }}/MeshPriv-V8-visual-review.xcresult" \
             test
+
+      # Four PT-BR Matrix renders are attached by MeshPrivV8VisualSnapshots.
+      # Keep evidence available even when a simulator test fails.
+      - name: Preserve V8 simulator screenshots for visual comparison
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meshpriv-v8-ios-visual-review
+          path: ${{ github.workspace }}/MeshPriv-V8-visual-review.xcresult
+          retention-days: 7
+          if-no-files-found: warn
 
   # Blocking since the backlog reached zero (all violations fixed; rules the
   # codebase deliberately breaks are disabled in .swiftlint.yml). --strict
