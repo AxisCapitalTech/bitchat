@@ -34,16 +34,21 @@ final class PublicMessagePipeline {
     private var dynamicFlushInterval: TimeInterval
     private var recentBatchSizes: [Int] = []
     private let maxRecentBatchSamples: Int
+    // Upper bound on a high-volume queue before we flush synchronously.
+    // Sparse traffic still uses the existing ~80ms coalescing timer.
+    private let maxBufferedMessages: Int
     private let dedupWindow: TimeInterval
 
     init(
         baseFlushInterval: TimeInterval = TransportConfig.basePublicFlushInterval,
         maxRecentBatchSamples: Int = 10,
+        maxBufferedMessages: Int = 40,
         dedupWindow: TimeInterval = 1.0
     ) {
         self.baseFlushInterval = baseFlushInterval
         self.dynamicFlushInterval = baseFlushInterval
         self.maxRecentBatchSamples = maxRecentBatchSamples
+        self.maxBufferedMessages = max(1, maxBufferedMessages)
         self.dedupWindow = dedupWindow
     }
 
@@ -56,7 +61,14 @@ final class PublicMessagePipeline {
     /// a channel switch mid-batch can never misroute buffered messages.
     func enqueue(_ message: BitchatMessage, to conversationID: ConversationID) {
         buffer.append((message, conversationID))
-        scheduleFlush()
+        // Under a burst, avoid repeatedly waiting for the full timer
+        // interval when messages arrive on successive main-actor hops.
+        // Every flush uses existing sorting, dedup and store commit logic.
+        if buffer.count >= maxBufferedMessages {
+            flushBuffer()
+        } else {
+            scheduleFlush()
+        }
     }
 
     /// Discards an uncommitted row by ID. Bridge-first/radio-second dedup uses

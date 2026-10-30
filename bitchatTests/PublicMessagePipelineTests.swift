@@ -123,6 +123,100 @@ struct PublicMessagePipelineTests {
     }
 
     @Test @MainActor
+    func burstFlush_commitsBeforeTimerWhenBatchLimitReached() {
+        let pipeline = PublicMessagePipeline(
+            baseFlushInterval: 30,
+            maxBufferedMessages: 4
+        )
+        let delegate = TestPipelineDelegate()
+        pipeline.delegate = delegate
+
+        let base = Date()
+        for index in 0..<3 {
+            pipeline.enqueue(
+                makeMessage(
+                    id: "burst-\(index)",
+                    content: "message \(index)",
+                    timestamp: base.addingTimeInterval(Double(index))
+                ),
+                to: .mesh
+            )
+        }
+        #expect(delegate.committed.isEmpty)
+
+        pipeline.enqueue(
+            makeMessage(
+                id: "burst-3",
+                content: "message 3",
+                timestamp: base.addingTimeInterval(3)
+            ),
+            to: .mesh
+        )
+        // A busy mesh stream must not wait for a second timer tick.
+        #expect(delegate.messages(in: .mesh).count == 4)
+        pipeline.flushIfNeeded()
+        #expect(delegate.messages(in: .mesh).count == 4)
+    }
+
+    @Test @MainActor
+    func burstFlush_preservesContentDedupAcrossSeparateBatches() {
+        let pipeline = PublicMessagePipeline(
+            baseFlushInterval: 30,
+            maxBufferedMessages: 2
+        )
+        let delegate = TestPipelineDelegate()
+        pipeline.delegate = delegate
+
+        let now = Date()
+        pipeline.enqueue(makeMessage(id: "a", content: "one", timestamp: now), to: .mesh)
+        pipeline.enqueue(makeMessage(id: "b", content: "two", timestamp: now), to: .mesh)
+        #expect(delegate.messages(in: .mesh).count == 2)
+        pipeline.enqueue(
+            makeMessage(
+                id: "c",
+                content: "one",
+                timestamp: now.addingTimeInterval(0.2)
+            ),
+            to: .mesh
+        )
+        pipeline.enqueue(
+            makeMessage(
+                id: "d",
+                content: "three",
+                timestamp: now.addingTimeInterval(0.2)
+            ),
+            to: .mesh
+        )
+        #expect(delegate.messages(in: .mesh).map(\.id) == ["a", "b", "d"])
+    }
+
+    @Test @MainActor
+    func burstFlush_preservesConversationDestinations() {
+        let pipeline = PublicMessagePipeline(
+            baseFlushInterval: 30,
+            maxBufferedMessages: 2
+        )
+        let delegate = TestPipelineDelegate()
+        pipeline.delegate = delegate
+        let now = Date()
+
+        pipeline.enqueue(
+            makeMessage(id: "mesh", content: "a", timestamp: now),
+            to: .mesh
+        )
+        pipeline.enqueue(
+            makeMessage(
+                id: "geo",
+                content: "b",
+                timestamp: now.addingTimeInterval(1)
+            ),
+            to: .geohash("u4pruydq")
+        )
+        #expect(delegate.messages(in: .mesh).map(\.id) == ["mesh"])
+        #expect(delegate.messages(in: .geohash("u4pruydq")).map(\.id) == ["geo"])
+    }
+
+    @Test @MainActor
     func removeMessage_discardsBridgeAliasBeforeBatchFlush() {
         let pipeline = PublicMessagePipeline()
         let delegate = TestPipelineDelegate()

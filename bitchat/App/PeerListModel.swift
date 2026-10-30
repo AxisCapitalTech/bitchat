@@ -49,6 +49,8 @@ struct RecentChatRow: Identifiable, Equatable {
     let displayName: String
     let hasUnread: Bool
     let lastActivity: Date
+    /// Preview of a real, locally stored direct message. Never fetched online.
+    var lastMessagePreview: String? = nil
 
     var id: String { peerID.id }
 }
@@ -335,6 +337,7 @@ final class PeerListModel: ObservableObject {
         struct Candidate {
             let peerID: PeerID
             let lastActivity: Date
+            let lastMessagePreview: String?
         }
         var bestByIdentity: [String: Candidate] = [:]
 
@@ -355,7 +358,12 @@ final class PeerListModel: ObservableObject {
                existing.lastActivity >= lastMessage.timestamp {
                 continue
             }
-            bestByIdentity[identityKey] = Candidate(peerID: peerID, lastActivity: lastMessage.timestamp)
+            let preview = lastMessage.content.trimmingCharacters(in: .whitespacesAndNewlines)
+            bestByIdentity[identityKey] = Candidate(
+                peerID: peerID,
+                lastActivity: lastMessage.timestamp,
+                lastMessagePreview: preview.isEmpty ? nil : String(preview.prefix(120))
+            )
         }
 
         return bestByIdentity.values
@@ -365,7 +373,8 @@ final class PeerListModel: ObservableObject {
                     peerID: candidate.peerID,
                     displayName: displayName(for: candidate.peerID),
                     hasUnread: chatViewModel.hasUnreadMessages(for: candidate.peerID),
-                    lastActivity: candidate.lastActivity
+                    lastActivity: candidate.lastActivity,
+                    lastMessagePreview: candidate.lastMessagePreview
                 )
             }
     }

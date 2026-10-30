@@ -18,20 +18,56 @@ enum MeshPrivV7Style {
     static let secondary = Color(red: 0.63, green: 0.79, blue: 0.70)
 }
 
-private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
-    Locale.current.language.languageCode?.identifier == "pt" ? portuguese : english
+/// Original triangular mesh symbol used across the native Matrix shell.
+/// Shape-based artwork stays crisp at every screen density.
+private struct MeshPrivNativeBrandMark: View {
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let height = geometry.size.height
+            ZStack {
+                Path { path in
+                    path.move(to: CGPoint(x: width * 0.15, y: height * 0.06))
+                    path.addLine(to: CGPoint(x: width * 0.91, y: height * 0.5))
+                    path.addLine(to: CGPoint(x: width * 0.15, y: height * 0.94))
+                    path.closeSubpath()
+                }
+                .stroke(
+                    MeshPrivV7Style.neon,
+                    style: StrokeStyle(lineWidth: 1.9, lineJoin: .round)
+                )
+
+                Path { path in
+                    path.move(to: CGPoint(x: width * 0.15, y: height * 0.06))
+                    path.addLine(to: CGPoint(x: width * 0.52, y: height * 0.5))
+                    path.addLine(to: CGPoint(x: width * 0.15, y: height * 0.94))
+                    path.move(to: CGPoint(x: width * 0.52, y: height * 0.5))
+                    path.addLine(to: CGPoint(x: width * 0.91, y: height * 0.5))
+                }
+                .stroke(
+                    MeshPrivV7Style.neon.opacity(0.85),
+                    style: StrokeStyle(lineWidth: 1.25, lineJoin: .round)
+                )
+            }
+        }
+        .frame(width: 30, height: 32)
+        .shadow(color: MeshPrivV7Style.neon.opacity(0.5), radius: 7)
+        .accessibilityHidden(true)
+    }
 }
 
 struct MeshPrivNativeHeader: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let onRequestPanic: () -> Void
 
     var body: some View {
         HStack(spacing: 9) {
-            Image(systemName: "point.3.connected.trianglepath.dotted")
-                .font(.system(size: 23, weight: .medium))
-                .foregroundColor(MeshPrivV7Style.neon)
-                .frame(width: 32, height: 32)
-                .shadow(color: MeshPrivV7Style.neon.opacity(0.5), radius: 7)
+            MeshPrivNativeBrandMark()
 
             HStack(spacing: 0) {
                 Text("Mesh")
@@ -79,6 +115,7 @@ private struct MeshPrivNativeConversation: Identifiable {
     let isReachable: Bool
     let isUnread: Bool
     let lastActivity: Date?
+    let lastMessagePreview: String?
 
     var id: String { peerID.id }
 }
@@ -119,6 +156,12 @@ private struct MeshPrivNativeAvatar: View {
 /// No fabricated chats or locations: display only peers/recent DMs emitted
 /// by PeerListModel and reuse startConversation(with:) from the upstream app.
 struct MeshPrivNativeChatsHome: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let peers: [MeshPeerRow]
     let recentChats: [RecentChatRow]
     let onOpenPeer: (PeerID) -> Void
@@ -148,7 +191,8 @@ struct MeshPrivNativeChatsHome: View {
                     isConnected: peer?.isConnected ?? false,
                     isReachable: peer?.isReachable ?? false,
                     isUnread: recent.hasUnread || (peer?.hasUnread ?? false),
-                    lastActivity: recent.lastActivity
+                    lastActivity: recent.lastActivity,
+                    lastMessagePreview: recent.lastMessagePreview
                 )
             )
         }
@@ -164,7 +208,8 @@ struct MeshPrivNativeChatsHome: View {
                     isConnected: peer.isConnected,
                     isReachable: peer.isReachable,
                     isUnread: peer.hasUnread,
-                    lastActivity: nil
+                    lastActivity: nil,
+                    lastMessagePreview: nil
                 )
             )
         }
@@ -287,29 +332,39 @@ struct MeshPrivNativeChatsHome: View {
                                             }
                                         }
                                         HStack(spacing: 5) {
-                                            Circle()
-                                                .fill(
-                                                    chat.isConnected
-                                                        ? MeshPrivV7Style.neon
-                                                        : MeshPrivV7Style.secondary
-                                                )
-                                                .frame(width: 6, height: 6)
-                                            Text(
-                                                chat.isConnected
-                                                    ? meshPrivNativeLabel(
-                                                        "Bluetooth direto", "Direct Bluetooth"
+                                            if let preview = chat.lastMessagePreview {
+                                                Image(systemName: "lock.fill")
+                                                    .font(.system(size: 8))
+                                                    .foregroundColor(MeshPrivV7Style.neon)
+                                                Text(verbatim: preview)
+                                                    .font(.system(size: 11))
+                                                    .foregroundColor(MeshPrivV7Style.secondary)
+                                                    .lineLimit(1)
+                                            } else {
+                                                Circle()
+                                                    .fill(
+                                                        chat.isConnected
+                                                            ? MeshPrivV7Style.neon
+                                                            : MeshPrivV7Style.secondary
                                                     )
-                                                    : chat.isReachable
+                                                    .frame(width: 6, height: 6)
+                                                Text(
+                                                    chat.isConnected
                                                         ? meshPrivNativeLabel(
-                                                            "Alcançável via mesh", "Mesh reachable"
+                                                            "Bluetooth direto", "Direct Bluetooth"
                                                         )
-                                                        : meshPrivNativeLabel(
-                                                            "Conversa anterior", "Previous chat"
-                                                        )
-                                            )
-                                            .font(.system(size: 11))
-                                            .foregroundColor(MeshPrivV7Style.secondary)
-                                            .lineLimit(1)
+                                                        : chat.isReachable
+                                                            ? meshPrivNativeLabel(
+                                                                "Alcançável via mesh", "Mesh reachable"
+                                                            )
+                                                            : meshPrivNativeLabel(
+                                                                "Conversa anterior", "Previous chat"
+                                                            )
+                                                )
+                                                .font(.system(size: 11))
+                                                .foregroundColor(MeshPrivV7Style.secondary)
+                                                .lineLimit(1)
+                                            }
                                         }
                                     }
                                     if chat.isUnread {
@@ -384,6 +439,12 @@ struct MeshPrivNativeChatsHome: View {
 /// Connections and statuses are real BLE model data. The selected peer opens
 /// its actual upstream conversation.
 struct MeshPrivNativeRadar: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let peers: [MeshPeerRow]
     let onOpenPeer: (PeerID) -> Void
 
@@ -579,6 +640,12 @@ struct MeshPrivNativeRadar: View {
 }
 
 struct MeshPrivNativeProfile: View {
+    @Environment(\.locale) private var locale
+
+    private func meshPrivNativeLabel(_ portuguese: String, _ english: String) -> String {
+        locale.language.languageCode?.identifier == "pt" ? portuguese : english
+    }
+
     let reachableCount: Int
     let onRequestPanic: () -> Void
 

@@ -538,6 +538,17 @@ struct ViewSmokeTests {
 
     #if os(iOS)
     @Test @MainActor
+    func meshPrivV8Tabs_respectPortugueseAndEnglishLocales() {
+        let brazil = Locale(identifier: "pt_BR")
+        let english = Locale(identifier: "en_US")
+        #expect(MeshPrivSection.chats.localizedLabel(locale: brazil) == "Conversas")
+        #expect(MeshPrivSection.nearby.localizedLabel(locale: brazil) == "Perto de mim")
+        #expect(MeshPrivSection.pay.localizedLabel(locale: brazil) == "Carteira")
+        #expect(MeshPrivSection.profile.localizedLabel(locale: brazil) == "Perfil")
+        #expect(MeshPrivSection.chats.localizedLabel(locale: english) == "Chats")
+    }
+
+    @Test @MainActor
     func meshPrivV7NativeScreens_renderEmptyPeerState() {
         // The real-data home/radar must render with zero BLE peers; no
         // fabricated contacts, positions or wallet balances are permitted.

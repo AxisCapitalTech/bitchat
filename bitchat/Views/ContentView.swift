@@ -105,6 +105,7 @@ struct ContentView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.appTheme) private var appTheme
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.locale) private var meshPrivLocale
     @State private var showSidebar = false
     // Shared iOS shell: native chat, BLE discovery and local Axis Pay demo.
     #if os(iOS)
@@ -527,7 +528,7 @@ struct ContentView: View {
                             meshPrivShowLocalChannel = false
                         } label: {
                             Label(
-                                String(localized: "chats.section.header", defaultValue: "chats"),
+                                meshPrivLocale.language.languageCode?.identifier == "pt" ? "Conversas" : "Chats",
                                 systemImage: "chevron.left"
                             )
                             .font(.system(size: 13, weight: .semibold))
