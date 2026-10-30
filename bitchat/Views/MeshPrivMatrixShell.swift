@@ -244,6 +244,8 @@ struct MeshPrivPaySandboxView: View {
     @State private var asset = "USDC"
     @State private var presentedCharge: MeshPrivDemoCharge?
     @State private var invalidAmount = false
+    @State private var showDisabledAlert = false
+    @State private var disabledAction = ""
 
     private var charges: [MeshPrivDemoCharge] {
         guard let data = chargeJSON.data(using: .utf8) else { return [] }
@@ -251,83 +253,158 @@ struct MeshPrivPaySandboxView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("AXIS PAY / SANDBOX_")
-                    .font(.system(size: 12, weight: .bold, design: .monospaced))
-                    .tracking(2)
-                    .foregroundColor(MeshPrivPalette.accent)
+        ScrollViewReader { scroll in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    HStack {
+                        Text(meshPrivText("Carteira", "Wallet"))
+                            .font(.system(size: 30, weight: .bold))
+                            .foregroundColor(MeshPrivV7Style.white)
+                        Spacer()
+                        Text("AXIS PAY")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(MeshPrivV7Style.neon)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(MeshPrivV7Style.panel, in: Capsule())
+                            .overlay(
+                                Capsule().stroke(MeshPrivV7Style.neon.opacity(0.7))
+                            )
+                    }
 
-                Text(meshPrivText("Carteira", "Wallet"))
-                    .font(.system(size: 30, weight: .bold, design: .monospaced))
+                    walletStatus
+
+                    HStack(spacing: 8) {
+                        shortcut("paperplane", meshPrivText("Enviar", "Send")) {
+                            disabledAction = meshPrivText(
+                                "Envio indisponível no sandbox",
+                                "Sending is unavailable in sandbox"
+                            )
+                            showDisabledAlert = true
+                        }
+                        shortcut("arrow.down.left", meshPrivText("Receber", "Receive")) {
+                            withAnimation { scroll.scrollTo("newCharge", anchor: .top) }
+                        }
+                        shortcut("qrcode.viewfinder", meshPrivText("Escanear", "Scan")) {
+                            disabledAction = meshPrivText(
+                                "Leitura indisponível no sandbox",
+                                "Scanning is unavailable in sandbox"
+                            )
+                            showDisabledAlert = true
+                        }
+                        shortcut("clock.arrow.circlepath", meshPrivText("Histórico", "History")) {
+                            withAnimation { scroll.scrollTo("chargeHistory", anchor: .top) }
+                        }
+                    }
+
+                    createCharge.id("newCharge")
+                    chargeHistory.id("chargeHistory")
+                }
+                .padding(17)
+            }
+            .background(MeshPrivV7Style.black)
+            .foregroundColor(MeshPrivV7Style.white)
+            .alert(
+                meshPrivText("Valor inválido", "Invalid amount"),
+                isPresented: $invalidAmount
+            ) {
+                Button("OK", role: .cancel) {}
+            } message: {
                 Text(
                     meshPrivText(
-                        "Pagamentos integrados ao aplicativo. Transações reais ainda desativadas.",
-                        "Payments inside the app. Real transactions are not enabled yet."
+                        "Informe um valor entre R$ 0,01 e R$ 100.000.",
+                        "Enter an amount between BRL 0.01 and BRL 100,000."
                     )
                 )
-                .font(.subheadline)
-                .foregroundColor(MeshPrivPalette.secondary)
-
-                walletStatus
-                createCharge
-                chargeHistory
             }
-            .padding(20)
-        }
-        .background(MeshPrivPalette.background)
-        .foregroundColor(.white)
-        .alert(
-            meshPrivText("Valor inválido", "Invalid amount"),
-            isPresented: $invalidAmount
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(
-                meshPrivText(
-                    "Informe um valor entre R$ 0,01 e R$ 100.000.",
-                    "Enter an amount between BRL 0.01 and BRL 100,000."
+            .alert(disabledAction, isPresented: $showDisabledAlert) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(meshPrivText(
+                    "Esta função não movimenta fundos reais.",
+                    "This function cannot move real funds."
+                ))
+            }
+            .sheet(item: $presentedCharge) { charge in
+                MeshPrivDemoChargeSheet(
+                    charge: charge,
+                    onSimulate: { markPaid(charge.id) }
                 )
-            )
-        }
-        .sheet(item: $presentedCharge) { charge in
-            MeshPrivDemoChargeSheet(
-                charge: charge,
-                onSimulate: { markPaid(charge.id) }
-            )
+            }
         }
     }
 
+    private func shortcut(
+        _ symbol: String,
+        _ label: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 21, weight: .medium))
+                    .frame(height: 24)
+                Text(label)
+                    .font(.system(size: 11, weight: .semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
+            .foregroundColor(MeshPrivV7Style.white)
+            .background(MeshPrivV7Style.panel, in: RoundedRectangle(cornerRadius: 11))
+            .overlay {
+                RoundedRectangle(cornerRadius: 11)
+                    .stroke(MeshPrivV7Style.line, lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
     private var walletStatus: some View {
-        VStack(alignment: .leading, spacing: 11) {
-            Label(
-                meshPrivText("Nenhuma carteira conectada", "No wallet connected"),
-                systemImage: "wallet.pass"
-            )
-            .font(.headline)
-            Text(
-                meshPrivText(
-                    "Sem chaves privadas, saldo fictício ou custódia de fundos.",
-                    "No private keys, fake balance or custody of funds."
+        VStack(alignment: .leading, spacing: 15) {
+            HStack {
+                Text(
+                    meshPrivText(
+                        "SALDO (BRL) · CARTEIRA NÃO CONECTADA",
+                        "BALANCE (BRL) · WALLET DISCONNECTED"
+                    )
                 )
-            )
-            .font(.caption)
-            .foregroundColor(MeshPrivPalette.secondary)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                Spacer()
+                Image(systemName: "eye.slash")
+            }
+            .foregroundColor(MeshPrivV7Style.white.opacity(0.9))
+
+            Text("R$ —")
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundColor(MeshPrivV7Style.white)
+
             Text("● SANDBOX · NO REAL TRANSACTIONS")
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundColor(MeshPrivPalette.accent)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(MeshPrivV7Style.neon)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(18)
-        .background(MeshPrivPalette.surface, in: RoundedRectangle(cornerRadius: 15))
+        .padding(19)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(red: 0.04, green: 0.31, blue: 0.19),
+                    MeshPrivV7Style.black
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 16)
+        )
         .overlay {
-            RoundedRectangle(cornerRadius: 15)
-                .stroke(MeshPrivPalette.border, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(MeshPrivV7Style.neon.opacity(0.5), lineWidth: 1)
         }
     }
 
     private var createCharge: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(meshPrivText("Nova cobrança de teste", "New demo charge"))
                 .font(.headline)
 
@@ -356,6 +433,31 @@ struct MeshPrivPaySandboxView: View {
             .buttonStyle(.plain)
             .background(MeshPrivPalette.accent, in: RoundedRectangle(cornerRadius: 10))
             .foregroundColor(MeshPrivPalette.background)
+
+            if let mostRecent = charges.first {
+                HStack(spacing: 13) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(meshPrivText("QR não pagável", "Non-payable QR"))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(MeshPrivV7Style.neon)
+                        Text(meshPrivText(
+                            "Apenas um código demonstrativo. Não envie criptomoedas.",
+                            "Demo code only. Do not send cryptocurrency."
+                        ))
+                        .font(.system(size: 11))
+                        .foregroundColor(MeshPrivV7Style.secondary)
+                    }
+                    Spacer()
+                    MeshPrivDemoQRCode(payload: mostRecent.payload)
+                        .frame(width: 98, height: 98)
+                }
+                .padding(9)
+                .background(
+                    MeshPrivV7Style.black,
+                    in: RoundedRectangle(cornerRadius: 11)
+                )
+                .onTapGesture { presentedCharge = mostRecent }
+            }
 
             Text(
                 meshPrivText(
